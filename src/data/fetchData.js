@@ -10,14 +10,13 @@ export async function fetchData() {
 
   for (const key in response.data) {
     const studentObj = {
-      id: key,
+      idDB: key,
+      id: response.data[key].id,
       name: response.data[key].name,
-      gender: response.data[key].gender,
-      age: response.data[key].age,
-      birthDay: new Date(response.data[key].birthDay),
+      email: response.data[key].email,
     };
     students.push(studentObj);
   }
 
-  return students;
+  return { data: students, status: response.statusText };
 }

@@ -1,47 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addNewStudent } from "../features/studentSlice";
+import { addNewStudent, updateStudent } from "../features/studentSlice";
+import { sendData, updateData } from "../data/http";
 
 const StudentForm = () => {
-  const student = useSelector((state) => state.students.student);
+  const studentForEdit = useSelector((state) => state.students.studentForEdit);
 
-  console.log(student);
-
-  const [studentName, setStudentName] = useState(student.name);
-  const [studentEmail, setStudentEmail] = useState(student.email);
+  const [isNewData, setIsNewData] = useState(false);
+  const [studentName, setStudentName] = useState("");
+  const [studentEmail, setStudentEmail] = useState("");
 
   const [isClicked, setIsClicked] = useState(false);
-  const [isStudentName, setIsStudentName] = useState(false);
-  const [isStudentEmail, setIsStudentEmail] = useState(false);
 
   const dispatch = useDispatch();
 
-  const onStudentNameChanged = (event) => {
-    setStudentName(event.target.value);
-    setIsStudentName(true);
+  const doUpdate = () => {
+    const student = {
+      id: studentForEdit.student.id,
+      name: studentName,
+      email: studentEmail,
+    };
+
+    updateData(studentForEdit.student.idDB, student);
+
+    dispatch(updateStudent({ index: studentForEdit.index, student }));
   };
-  const onStudentEmailChanged = (event) => {
-    setStudentEmail(event.target.value);
-    setIsStudentEmail(true);
-  };
 
-  const saveStudentHandler = (event) => {
-    event.preventDefault();
-
-    setIsClicked(true);
-
-    if (studentName.length === 0) {
-      setIsStudentName(false);
-    }
-
-    if (studentEmail.length === 0) {
-      setIsStudentEmail(false);
-    }
-
-    if (!isStudentName || !isStudentEmail) {
-      return;
-    }
-
+  const doAddNew = async () => {
     const studentId = Math.floor(Math.random() * 99);
 
     const newStudent = {
@@ -50,11 +35,45 @@ const StudentForm = () => {
       email: studentEmail,
     };
 
+    const response = await sendData(newStudent);
+
+    if (response.status == "OK") {
+      dispatch(addNewStudent(newStudent));
+    }
+  };
+
+  const onStudentNameChanged = (event) => {
+    setStudentName(event.target.value);
+  };
+  const onStudentEmailChanged = (event) => {
+    setStudentEmail(event.target.value);
+  };
+
+  const saveStudentHandler = (event) => {
+    event.preventDefault();
+    setIsClicked(true);
+
+    if (!studentName || !studentEmail) {
+      return;
+    }
+
+    isNewData ? doAddNew() : doUpdate();
+
     setStudentName("");
     setStudentEmail("");
-
-    dispatch(addNewStudent(newStudent));
+    setIsClicked(false);
+    setIsNewData(true);
   };
+
+  useEffect(() => {
+    if (studentForEdit.index >= 0) {
+      setStudentName(studentForEdit.student.name);
+      setStudentEmail(studentForEdit.student.email);
+      setIsNewData(false);
+    } else {
+      setIsNewData(true);
+    }
+  }, [studentForEdit]);
 
   return (
     <form>
@@ -68,7 +87,7 @@ const StudentForm = () => {
           value={studentName}
           onChange={onStudentNameChanged}
         />
-        {!isStudentName && isClicked ? (
+        {!studentName && isClicked ? (
           <span className="text-danger">This field is required!</span>
         ) : (
           ""
@@ -84,7 +103,7 @@ const StudentForm = () => {
           value={studentEmail}
           onChange={onStudentEmailChanged}
         />
-        {!isStudentEmail && isClicked ? (
+        {!studentEmail && isClicked ? (
           <span className="text-danger">This field is required!</span>
         ) : (
           ""
